@@ -1,9 +1,10 @@
 # USAGE
-# python real_time_object_detection.py --prototxt MobileNetSSD_deploy.prototxt.txt --model MobileNetSSD_deploy.caffemodel
-
+# python real_time_object_detection.py --prototxt back_end/object_detection/MobileNetSSD_deploy.prototxt.txt --model back_end/object_detection/MobileNetSSD_deploy.caffemodel
+# rtsp://admin:1234qwer@192.168.1.4:554/onvif1
 # import the necessary packages
 from imutils.video import VideoStream
 from imutils.video import FPS
+import os
 import numpy as np
 import argparse
 import imutils
@@ -20,6 +21,7 @@ ap.add_argument("-c", "--confidence", type=float, default=0.2,
 	help="minimum probability to filter weak detections")
 args = vars(ap.parse_args())
 
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 # initialize the list of class labels MobileNet SSD was trained to
 # detect, then generate a set of bounding box colors for each class
 CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
@@ -35,7 +37,7 @@ net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 # initialize the video stream, allow the cammera sensor to warmup,
 # and initialize the FPS counter
 print("[INFO] starting video stream...")
-vs = VideoStream(src=0).start()
+cap = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.4:554/onvif1')
 time.sleep(2.0)
 fps = FPS().start()
 
@@ -43,7 +45,7 @@ fps = FPS().start()
 while True:
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
-	frame = vs.read()
+	ret, frame = cap.read()
 	frame = imutils.resize(frame, width=400)
 
 	# grab the frame dimensions and convert it to a blob
@@ -99,4 +101,4 @@ print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
 
 # do a bit of cleanup
 cv2.destroyAllWindows()
-vs.stop()
+cap.stop()
