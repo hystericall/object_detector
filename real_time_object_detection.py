@@ -1,5 +1,5 @@
 # USAGE
-# python real_time_object_detection.py --prototxt back_end/object_detection/MobileNetSSD_deploy.prototxt.txt --model back_end/object_detection/MobileNetSSD_deploy.caffemodel
+# python real_time_object_detection.py --prototxt MobileNetSSD_deploy.prototxt.txt --model MobileNetSSD_deploy.caffemodel
 # rtsp://admin:1234qwer@192.168.1.4:554/onvif1
 # import the necessary packages
 from imutils.video import VideoStream
@@ -37,7 +37,8 @@ net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
 # initialize the video stream, allow the cammera sensor to warmup,
 # and initialize the FPS counter
 print("[INFO] starting video stream...")
-cap = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.4:554/onvif1')
+# cap = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.4:554/onvif1')
+cap = cv2.VideoCapture('videofromcam.mp4')
 time.sleep(2.0)
 fps = FPS().start()
 
@@ -46,7 +47,7 @@ while True:
 	# grab the frame from the threaded video stream and resize it
 	# to have a maximum width of 400 pixels
 	ret, frame = cap.read()
-	frame = imutils.resize(frame, width=400)
+	# frame = imutils.resize(frame, width=400)
 
 	# grab the frame dimensions and convert it to a blob
 	(h, w) = frame.shape[:2]

@@ -7,42 +7,42 @@ import argparse
 import cv2
 
 # construct the argument parse and parse the arguments
-ap = argparse.ArgumentParser()
-ap.add_argument("-i", "--image", required=True,
-	help="path to input image")
-ap.add_argument("-p", "--prototxt", required=True,
-	help="path to Caffe 'deploy' prototxt file")
-ap.add_argument("-m", "--model", required=True,
-	help="path to Caffe pre-trained model")
-ap.add_argument("-c", "--confidence", type=float, default=0.2,
-	help="minimum probability to filter weak detections")
-args = vars(ap.parse_args())
+# ap = argparse.ArgumentParser()
+# ap.add_argument("-i", "--image", required=True,
+# 	help="path to input image")
+# ap.add_argument("-p", "--prototxt", required=True,
+# 	help="path to Caffe 'deploy' prototxt file")
+# ap.add_argument("-m", "--model", required=True,
+# 	help="path to Caffe pre-trained model")
+# ap.add_argument("-c", "--confidence", type=float, default=0.2,
+# 	help="minimum probability to filter weak detections")
+# args = vars(ap.parse_args())
 
 # initialize the list of class labels MobileNet SSD was trained to
 # detect, then generate a set of bounding box colors for each class
-CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
-	"bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
-	"dog", "horse", "motorbike", "person", "pottedplant", "sheep",
-	"sofa", "train", "tvmonitor"]
-COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+CLASSES = ["background", "nguoi", "xe may", "o to"]
+COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 4))
 
 # load our serialized model from disk
 print("[INFO] loading model...")
-net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
+# net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
+net = cv2.dnn.readNetFromTensorflow("frozen_inference_graph.pb", "output.pbtxt")
 
 # load the input image and construct an input blob for the image
 # by resizing to a fixed 300x300 pixels and then normalizing it
 # (note: normalization is done via the authors of the MobileNet SSD
 # implementation)
-image = cv2.imread(args["image"])
+image = cv2.imread('images/image_051.jpg')
 (h, w) = image.shape[:2]
-blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5)
+# blob = cv2.dnn.blobFromImage(cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5)
+blob = cv2.dnn.blobFromImage(image, size=(300, 300), swapRB=True, crop=False)
 
 # pass the blob through the network and obtain the detections and
 # predictions
 print("[INFO] computing object detections...")
 net.setInput(blob)
 detections = net.forward()
+print(detections.shape[2])
 
 # loop over the detections
 for i in np.arange(0, detections.shape[2]):
@@ -52,7 +52,7 @@ for i in np.arange(0, detections.shape[2]):
 
 	# filter out weak detections by ensuring the `confidence` is
 	# greater than the minimum confidence
-	if confidence > args["confidence"]:
+	if confidence > 0.2:
 		# extract the index of the class label from the `detections`,
 		# then compute the (x, y)-coordinates of the bounding box for
 		# the object
@@ -71,4 +71,5 @@ for i in np.arange(0, detections.shape[2]):
 
 # show the output image
 cv2.imshow("Output", image)
+cv2.imwrite('output3.jpg', image)
 cv2.waitKey(0)

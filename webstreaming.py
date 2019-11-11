@@ -29,15 +29,14 @@ app = Flask(__name__)
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 # initialize the list of class labels MobileNet SSD was trained to
 # detect, then generate a set of bounding box colors for each class
-CLASSES = ["background", "aeroplane", "bicycle", "bird", "boat",
-           "bottle", "bus", "car", "cat", "chair", "cow", "diningtable",
-           "dog", "horse", "xe may", "nguoi", "pottedplant", "sheep",
-           "sofa", "train", "tvmonitor"]
+CLASSES = ["background", "nguoi", "xe may", "o to"]
 COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 # initialize the video stream and allow the camera sensor to
 # warmup
 #vs = VideoStream(usePiCamera=1).start()
-vs = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.4:554/onvif1')
+vs = cv2.VideoCapture('rtsp://admin:1234admin@192.168.1.7:554/onvif1')
+# TODO doc video tu tap anh
+# vs = cv2.VideoCapture('videofromcam.mp4')
 time.sleep(2.0)
 
 @app.route("/")
@@ -45,7 +44,7 @@ def index():
 	# return the rendered template
 	return render_template("index.html")
 
-def detect_motion(frameCount):
+def detect_object(confidence):
 	# grab global references to the video stream, output frame, and
 	# lock variables
 	global vs, outputFrame, lock
@@ -59,11 +58,9 @@ def detect_motion(frameCount):
 		# read the next frame from the video stream, resize it,
 		# get the frame dimension and convert to a blob
 		ret, frame = vs.read()
-		frame = imutils.resize(frame, width=400)
 		# grab the frame dimensions and convert it to a blob
 		(h, w) = frame.shape[:2]
-		blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)),
-                              0.007843, (300, 300), 127.5)
+		blob = cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True, crop=False)
 
 		# detect object in the image
 		detections = od.detect(blob)
@@ -142,7 +139,7 @@ if __name__ == '__main__':
 	args = vars(ap.parse_args())
 
 	# start a thread that will perform motion detection
-	t = threading.Thread(target=detect_motion, args=(
+	t = threading.Thread(target=detect_object, args=(
 		args["confidence"],))
 	t.daemon = True
 	t.start()
