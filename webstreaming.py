@@ -35,7 +35,7 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 #vs = VideoStream(usePiCamera=1).start()
 # vs = cv2.VideoCapture('rtsp://admin:1234admin@192.168.1.7:554/onvif1')
 # TODO doc video tu tap anh
-vs = cv2.VideoCapture('videofromcam.mp4')
+vs = cv2.VideoCapture(0)
 time.sleep(2.0)
 
 @app.route("/")
@@ -43,21 +43,20 @@ def index():
   # return the rendered template
   return render_template("index.html")
 
-def detect_object(confidence):
+def detect_object(confidence, target):
   # grab global references to the video stream, output frame, and
   # lock variables
   global vs, outputFrame, lock
 
-  # initialize the motion detector and the total number of frames
+  # initialize the detector and the total number of frames
   # read thus far
   od = ObjectDetector()
-
   # loop over frames from the video stream
   while True:
     # read the next frame from the video stream, resize it,
     # get the frame dimension and convert to a blob
     ret, frame = vs.read()
-    # grab the frame dimensions and convert it to a blob
+    # grab the frame dimensions and convert it to a blob as opencv use
     (h, w) = frame.shape[:2]
     blob = cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True, crop=False)
 
@@ -78,6 +77,9 @@ def detect_object(confidence):
           # `detections`, then compute the (x, y)-coordinates of
           # the bounding box for the object
           idx = int(detections[0, 0, i, 1])
+          if target is not None:
+            if CLASSES[idx] != target:
+              continue
           box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
           (startX, startY, endX, endY) = box.astype("int")
 
@@ -135,11 +137,13 @@ if __name__ == '__main__':
     help="ephemeral port number of the server (1024 to 65535)")
   ap.add_argument("-c", "--confidence", type=float, default=0.3,
     help="the threshold confidence value")
+  ap.add_argument("-t", "--target", type=str, default= None,
+                  help="which object to detect")
   args = vars(ap.parse_args())
 
   # start a thread that will perform motion detection
   t = threading.Thread(target=detect_object, args=(
-    args["confidence"],))
+      args["confidence"], args["target"]))
   t.daemon = True
   t.start()
 
