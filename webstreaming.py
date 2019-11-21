@@ -11,7 +11,6 @@ import os
 import numpy as np
 import threading
 import argparse
-import datetime
 import imutils
 import time
 import cv2
@@ -35,7 +34,7 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 #vs = VideoStream(usePiCamera=1).start()
 # vs = cv2.VideoCapture('rtsp://admin:1234admin@192.168.1.7:554/onvif1')
 # TODO doc video tu tap anh
-vs = cv2.VideoCapture(0)
+vs = cv2.VideoCapture("videofromcam.mp4")
 time.sleep(2.0)
 
 @app.route("/")
@@ -46,7 +45,7 @@ def index():
 def detect_object(confidence, target):
   # grab global references to the video stream, output frame, and
   # lock variables
-  global vs, outputFrame, lock
+  global vs, outputFrame, lock, message
 
   # initialize the detector and the total number of frames
   # read thus far
@@ -56,13 +55,13 @@ def detect_object(confidence, target):
     # read the next frame from the video stream, resize it,
     # get the frame dimension and convert to a blob
     ret, frame = vs.read()
+    frame = imutils.resize(frame, width=1000)
     # grab the frame dimensions and convert it to a blob as opencv use
     (h, w) = frame.shape[:2]
     blob = cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True, crop=False)
 
     # detect object in the image
     detections = od.detect(blob)
-
       # check to see if there are detected objects
     if detections is not None:
       for i in np.arange(0, detections.shape[2]):
@@ -78,7 +77,7 @@ def detect_object(confidence, target):
           # the bounding box for the object
           idx = int(detections[0, 0, i, 1])
           if target is not None:
-            if CLASSES[idx] != target:
+            if target not in CLASSES[idx]:
               continue
           box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
           (startX, startY, endX, endY) = box.astype("int")
@@ -146,7 +145,6 @@ if __name__ == '__main__':
       args["confidence"], args["target"]))
   t.daemon = True
   t.start()
-
   # start the flask app
   app.run(host=args["ip"], port=args["port"], debug=True,
     threaded=True, use_reloader=False)

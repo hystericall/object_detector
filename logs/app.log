@@ -1,0 +1,6 @@
+2019-11-21 14:47:09,074 - INFO -  * Running on http://0.0.0.0:8000/ (Press CTRL+C to quit)
+2019-11-21 14:47:52,805 - INFO -  * Running on http://0.0.0.0:8000/ (Press CTRL+C to quit)
+2019-11-21 14:49:58,547 - INFO -  * Running on http://0.0.0.0:8000/ (Press CTRL+C to quit)
+2019-11-21 14:51:33,436 - INFO -  * Running on http://0.0.0.0:8000/ (Press CTRL+C to quit)
+2019-11-21 14:51:37,424 - INFO - 127.0.0.1 - - [21/Nov/2019 14:51:37] "GET / HTTP/1.1" 200 -
+2019-11-21 14:51:37,471 - INFO - 127.0.0.1 - - [21/Nov/2019 14:51:37] "GET /video_feed HTTP/1.1" 200 -
