@@ -29,7 +29,7 @@ lock = threading.Lock()
 # initialize a flask object, flask log config
 app = Flask(__name__)
 log = create_logger(app)
-logging.basicConfig(filemode='a',
+logging.basicConfig(filename='logs/app.log', filemode='a',
                     format='[%(asctime)s] %(levelname)s: %(message)s',
                     datefmt='%d-%b-%y %H:%M:%S')
 
@@ -181,8 +181,8 @@ if __name__ == '__main__':
   t.daemon = True
   t.start()
 
-  schedule.every().day.at("22:21").do(start)
-  schedule.every().day.at("22:22").do(stop)
+  schedule.every().day.at("23:00").do(start)
+  schedule.every().day.at("05:00").do(stop)
   t1 = threading.Thread(target=run_schedule)
   t1.daemon = True
   t1.start()
