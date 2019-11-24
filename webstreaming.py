@@ -3,10 +3,14 @@
 
 # import the necessary packages
 from back_end.object_detection import ObjectDetector
+# from back_end.logger import Logger
 from imutils.video import VideoStream
 from flask import Response
 from flask import Flask
 from flask import render_template
+from flask.logging import create_logger
+import logging
+import schedule
 import os
 import numpy as np
 import threading
@@ -14,14 +18,20 @@ import argparse
 import imutils
 import time
 import cv2
-# initialize the output frame and a lock used to ensure thread-safe
+# initialize the output frame, log message and a lock used to ensure thread-safe
 # exchanges of the output frames (useful for multiple browsers/tabs
 # are viewing tthe stream)
+mes = []
+job = None
 outputFrame = None
 lock = threading.Lock()
 
-# initialize a flask object
+# initialize a flask object, flask log config
 app = Flask(__name__)
+log = create_logger(app)
+logging.basicConfig(filemode='a',
+                    format='[%(asctime)s] %(levelname)s: %(message)s',
+                    datefmt='%d-%b-%y %H:%M:%S')
 
 # initialize enviroment variable
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
@@ -37,19 +47,15 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 vs = cv2.VideoCapture("videofromcam.mp4")
 time.sleep(2.0)
 
-@app.route("/")
-def index():
-  # return the rendered template
-  return render_template("index.html")
-
 def detect_object(confidence, target):
   # grab global references to the video stream, output frame, and
   # lock variables
-  global vs, outputFrame, lock, message
+  global vs, outputFrame, lock, mes
 
   # initialize the detector and the total number of frames
   # read thus far
   od = ObjectDetector()
+  detectedMes = []
   # loop over frames from the video stream
   while True:
     # read the next frame from the video stream, resize it,
@@ -85,6 +91,7 @@ def detect_object(confidence, target):
           # draw the prediction on the frame
           label = "{}: {:.2f}%".format(CLASSES[idx],
                                       confidence * 100)
+          detectedMes.append(label)
           cv2.rectangle(frame, (startX, startY), (endX, endY),
                                   COLORS[idx], 2)
           y = startY - 15 if startY - 15 > 15 else startY + 15
@@ -94,6 +101,8 @@ def detect_object(confidence, target):
     # lock
     with lock:
       outputFrame = frame.copy()
+      mes = detectedMes.copy()
+      detectedMes = []
 
 def generate():
   # grab global references to the output frame and lock variables
@@ -118,6 +127,32 @@ def generate():
     # yield the output frame in the byte format
     yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' +
       bytearray(encodedImage) + b'\r\n')
+
+def generateLog():
+  global mes
+  if mes == []:
+    return
+  log.warning(mes)
+
+def start():
+  global job
+  generateLog()
+  job = schedule.every().second.do(generateLog)
+
+def stop():
+  global job
+  if job is not None:
+    schedule.cancel_job(job)
+
+def run_schedule():
+  while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+@app.route("/")
+def index():
+  # return the rendered template
+  return render_template("index.html")
 
 @app.route("/video_feed")
 def video_feed():
@@ -145,9 +180,15 @@ if __name__ == '__main__':
       args["confidence"], args["target"]))
   t.daemon = True
   t.start()
+
+  schedule.every().day.at("22:21").do(start)
+  schedule.every().day.at("22:22").do(stop)
+  t1 = threading.Thread(target=run_schedule)
+  t1.daemon = True
+  t1.start()
   # start the flask app
   app.run(host=args["ip"], port=args["port"], debug=True,
-    threaded=True, use_reloader=False)
+    threaded=True, use_reloader=True)
 
 # release the video stream pointer
 vs.stop()
