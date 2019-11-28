@@ -1,0 +1,13 @@
+<!doctype html>
+<head>
+  <meta charset="UTF-8">
+  <title>Your result</title>
+</head>
+
+<body>
+  <ol>
+    <!-- For loop logic of jinja template -->
+    {%for name in names%}
+    <li><img src="{{ "/static/tmp/" ~ name }}"></li>
+    {%endfor%}
+</body>
