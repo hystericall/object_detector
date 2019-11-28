@@ -1,2 +1,5 @@
 # Ignore log files
 logs/
+
+# Ignore uploaded files
+static/tmp/
