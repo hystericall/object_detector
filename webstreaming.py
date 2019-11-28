@@ -8,7 +8,9 @@ from imutils.video import VideoStream
 from flask import Response
 from flask import Flask
 from flask import render_template
+from flask import request
 from flask.logging import create_logger
+import glob
 import logging
 import schedule
 import os
@@ -28,6 +30,7 @@ lock = threading.Lock()
 
 # initialize a flask object, flask log config
 app = Flask(__name__)
+
 log = create_logger(app)
 logging.basicConfig(filename='logs/app.log', filemode='a',
                     format='[%(asctime)s] %(levelname)s: %(message)s',
@@ -39,6 +42,7 @@ os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 # detect, then generate a set of bounding box colors for each class
 CLASSES = ["background", "nguoi", "xe may", "o to"]
 COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+UPLOAD_FOLDER = 'static/tmp/'
 # initialize the video stream and allow the camera sensor to
 # warmup
 #vs = VideoStream(usePiCamera=1).start()
@@ -46,6 +50,27 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 # TODO doc video tu tap anh
 vs = cv2.VideoCapture("videofromcam.mp4")
 time.sleep(2.0)
+
+def detect_from_image(frame, confidence_score=0.5):
+  image = imutils.resize(frame, width=1000)
+  od = ObjectDetector()
+  (h, w) = image.shape[:2]
+  blob = cv2.dnn.blobFromImage(image, size=(300, 300), swapRB=True, crop=False)
+  detections = od.detect(blob)
+  for i in np.arange(0, detections.shape[2]):
+    confidence = detections[0, 0, i, 2]
+    if confidence > confidence_score:
+      idx = int(detections[0, 0, i, 1])
+      box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+      (startX, startY, endX, endY) = box.astype("int")
+      label = "{}: {:.2f}%".format(CLASSES[idx], confidence * 100)
+      print("[INFO] {}".format(label))
+      cv2.rectangle(image, (startX, startY), (endX, endY),
+                    COLORS[idx], 2)
+      y = startY - 15 if startY - 15 > 15 else startY + 15
+      cv2.putText(image, label, (startX, y),
+                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS[idx], 2)
+  return image
 
 def detect_object(confidence, target):
   # grab global references to the video stream, output frame, and
@@ -160,6 +185,28 @@ def video_feed():
   # type (mime type)
   return Response(generate(),
     mimetype = "multipart/x-mixed-replace; boundary=frame")
+
+@app.route('/upload/', methods=['GET', 'POST'])
+def upload():
+  if request.method == 'POST':
+    uploaded_files = request.files.getlist("file[]")
+    tmp_files = glob.glob(UPLOAD_FOLDER + '*')
+    if tmp_files != []:
+      for f in tmp_files:
+          os.remove(f)
+    for file in uploaded_files:
+      file.save(os.getcwd() + "/" + UPLOAD_FOLDER + file.filename)
+    fileNames = os.listdir(UPLOAD_FOLDER)
+    for fileName in  fileNames:
+      image = cv2.imread(UPLOAD_FOLDER + fileName)
+      image = detect_from_image(image)
+      cv2.imwrite(UPLOAD_FOLDER + fileName, image)
+    return render_template('image_slide.html', names = fileNames)
+  return render_template('upload.html')
+
+@app.route('/result/')
+def result():
+  return render_template('image_slide.html')
 
 # check to see if this is the main thread of execution
 if __name__ == '__main__':

@@ -6,6 +6,7 @@ import numpy as np
 import argparse
 import cv2
 import os
+import time
 
 # construct the argument parse and parse the arguments
 # ap = argparse.ArgumentParser()
@@ -27,14 +28,17 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 4))
 # load our serialized model from disk
 print("[INFO] loading model...")
 # net = cv2.dnn.readNetFromCaffe(args["prototxt"], args["model"])
-net = cv2.dnn.readNetFromTensorflow("frozen_inference_graph_v2_29000.pb", "output_v2_29000.pbtxt")
+# net = cv2.dnn.readNetFromTensorflow("frozen_inference_graph_v2_40000.pb", "output_v2.pbtxt")
+net = cv2.dnn.readNetFromTensorflow("frozen_inference_graph_v3_59288.pb", "output_v3.pbtxt")
 
 # load the input image and construct an input blob for the image
 # by resizing to a fixed 300x300 pixels and then normalizing it
 # (note: normalization is done via the authors of the MobileNet SSD
 # implementation)
-for fileName in os.listdir("images"):
-  image = cv2.imread("images/" + fileName)
+time_avg = 0
+for i in range(3000):
+  start = time.time()
+  image = cv2.imread("images/image_001.jpg")
   (h, w) = image.shape[:2]
 
   # image = cv2.imread('images/image_051.jpg')
@@ -64,14 +68,13 @@ for fileName in os.listdir("images"):
 
       # display the prediction
       label = "{}: {:.2f}%".format(CLASSES[idx], confidence * 100)
-      print("[INFO] {}".format(label))
+      # print("[INFO] {}".format(label))
       cv2.rectangle(image, (startX, startY), (endX, endY),
         COLORS[idx], 2)
       y = startY - 15 if startY - 15 > 15 else startY + 15
       cv2.putText(image, label, (startX, y),
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS[idx], 2)
-
-  # show the output image
-  cv2.imshow("Output", image)
-  # cv2.imwrite('output3.jpg', image)
-  cv2.waitKey(0)
+  time_avg = time_avg + time.time() - start
+print(time_avg / 3000)
+# cv2.imshow("Output", image)
+# cv2.imwrite('static/tmp/output3.jpg', image)
