@@ -17,6 +17,6 @@ python3 real_time_object_detection.py --pbtxt output_v2.pbtxt --model frozen_inf
 
 Local website application:
 ```
-python3 python webstreaming.py --ip 0.0.0.0 --port 8000
+python3 webstreaming.py --ip 0.0.0.0 --port 8000
 ```
 Go to 0.0.0.0:8000 to see the live-streaming or 0.0.0.0:8000/upload/ to upload images

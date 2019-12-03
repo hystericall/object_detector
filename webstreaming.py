@@ -45,10 +45,8 @@ COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 UPLOAD_FOLDER = 'static/tmp/'
 # initialize the video stream and allow the camera sensor to
 # warmup
-#vs = VideoStream(usePiCamera=1).start()
-# vs = cv2.VideoCapture('rtsp://admin:1234admin@192.168.1.7:554/onvif1')
-# TODO doc video tu tap anh
-vs = cv2.VideoCapture("videofromcam.mp4")
+# vs = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.5:554/onvif1')
+# vs = cv2.VideoCapture("videofromcam.mp4")
 time.sleep(2.0)
 
 def detect_from_image(frame, confidence_score=0.5):
@@ -220,8 +218,13 @@ if __name__ == '__main__':
     help="the threshold confidence value")
   ap.add_argument("-t", "--target", type=str, default= None,
                   help="which object to detect")
+  ap.add_argument("-s", "--source", type=str,
+                  default="videofromcam.mp4",
+                  help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
 
+  vs = cv2.VideoCapture(args["source"])
+  # vs = cv2.VideoCapture(0)
   # start a thread that will perform motion detection
   t = threading.Thread(target=detect_object, args=(
       args["confidence"], args["target"]))
