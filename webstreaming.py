@@ -9,9 +9,9 @@ from flask import Response
 from flask import Flask
 from flask import render_template
 from flask import request
-from flask.logging import create_logger
 import glob
-import logging
+import logging.config
+import yaml
 import schedule
 import os
 import numpy as np
@@ -31,10 +31,14 @@ lock = threading.Lock()
 # initialize a flask object, flask log config
 app = Flask(__name__)
 
-log = create_logger(app)
-logging.basicConfig(filename='logs/app.log', filemode='a',
-                    format='[%(asctime)s] %(levelname)s: %(message)s',
-                    datefmt='%d-%b-%y %H:%M:%S')
+# log = create_logger(app)
+# logging.basicConfig(filename='logs/app.log', filemode='a',
+#                     format='[%(asctime)s] %(levelname)s: %(message)s',
+#                     datefmt='%d-%b-%y %H:%M:%S',
+#                     level=logging.CRITICAL)
+logging.config.dictConfig(yaml.load(open('logging.conf')))
+logfile = logging.getLogger('file')
+
 
 # initialize enviroment variable
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
@@ -49,12 +53,12 @@ UPLOAD_FOLDER = 'static/tmp/'
 # vs = cv2.VideoCapture("videofromcam.mp4")
 time.sleep(2.0)
 
-def detect_from_image(frame, confidence_score=0.5):
-  image = imutils.resize(frame, width=1000)
-  od = ObjectDetector()
-  (h, w) = image.shape[:2]
-  blob = cv2.dnn.blobFromImage(image, size=(300, 300), swapRB=True, crop=False)
-  detections = od.detect(blob)
+
+def detect_from_image(frame, detector, confidence_score=0.5):
+  frame = imutils.resize(frame, width=400)
+  (h, w) = frame.shape[:2]
+  blob = cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True, crop=False)
+  detections = detector.detect(blob)
   for i in np.arange(0, detections.shape[2]):
     confidence = detections[0, 0, i, 2]
     if confidence > confidence_score:
@@ -63,12 +67,12 @@ def detect_from_image(frame, confidence_score=0.5):
       (startX, startY, endX, endY) = box.astype("int")
       label = "{}: {:.2f}%".format(CLASSES[idx], confidence * 100)
       print("[INFO] {}".format(label))
-      cv2.rectangle(image, (startX, startY), (endX, endY),
+      cv2.rectangle(frame, (startX, startY), (endX, endY),
                     COLORS[idx], 2)
       y = startY - 15 if startY - 15 > 15 else startY + 15
-      cv2.putText(image, label, (startX, y),
+      cv2.putText(frame, label, (startX, y),
                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, COLORS[idx], 2)
-  return image
+  return frame
 
 def detect_object(confidence, target):
   # grab global references to the video stream, output frame, and
@@ -155,7 +159,7 @@ def generateLog():
   global mes
   if mes == []:
     return
-  log.warning(mes)
+  logfile.critical(mes)
 
 def start():
   global job
@@ -195,16 +199,18 @@ def upload():
     for file in uploaded_files:
       file.save(os.getcwd() + "/" + UPLOAD_FOLDER + file.filename)
     fileNames = os.listdir(UPLOAD_FOLDER)
+    od = ObjectDetector()
     for fileName in  fileNames:
       image = cv2.imread(UPLOAD_FOLDER + fileName)
-      image = detect_from_image(image)
+      image = detect_from_image(frame=image, detector=od)
       cv2.imwrite(UPLOAD_FOLDER + fileName, image)
     return render_template('image_slide.html', names = fileNames)
   return render_template('upload.html')
 
 @app.route('/result/')
 def result():
-  return render_template('image_slide.html')
+  fileNames = os.listdir(UPLOAD_FOLDER)
+  return render_template('image_slide.html', names = fileNames )
 
 # check to see if this is the main thread of execution
 if __name__ == '__main__':
@@ -223,13 +229,13 @@ if __name__ == '__main__':
                   help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
 
-  vs = cv2.VideoCapture(args["source"])
-  # vs = cv2.VideoCapture(0)
-  # start a thread that will perform motion detection
-  t = threading.Thread(target=detect_object, args=(
-      args["confidence"], args["target"]))
-  t.daemon = True
-  t.start()
+  # vs = cv2.VideoCapture(args["source"])
+  # # vs = cv2.VideoCapture(0)
+  # # start a thread that will perform motion detection
+  # t = threading.Thread(target=detect_object, args=(
+  #     args["confidence"], args["target"]))
+  # t.daemon = True
+  # t.start()
 
   schedule.every().day.at("23:00").do(start)
   schedule.every().day.at("05:00").do(stop)
