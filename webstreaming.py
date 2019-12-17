@@ -229,13 +229,13 @@ if __name__ == '__main__':
                   help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
 
-  # vs = cv2.VideoCapture(args["source"])
-  # # vs = cv2.VideoCapture(0)
-  # # start a thread that will perform motion detection
-  # t = threading.Thread(target=detect_object, args=(
-  #     args["confidence"], args["target"]))
-  # t.daemon = True
-  # t.start()
+  vs = cv2.VideoCapture(args["source"])
+  # vs = cv2.VideoCapture(0)
+  # start a thread that will perform motion detection
+  t = threading.Thread(target=detect_object, args=(
+      args["confidence"], args["target"]))
+  t.daemon = True
+  t.start()
 
   schedule.every().day.at("23:00").do(start)
   schedule.every().day.at("05:00").do(stop)
