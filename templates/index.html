@@ -1,12 +1,40 @@
-<html>
-
+<!doctype html>
 <head>
+  <meta charset="UTF-8">
   <title>Camera giám sát</title>
+  <link href="/static/theme/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+  <script src="/static/theme/bootstrap.min.js"></script>
+  <!-- <script src="/static/theme/jquery-3.4.1.min.js"></script> -->
 </head>
 
 <body>
-  <h1>Phòng khách</h1>
-  <img src="{{ url_for('video_feed') }}">
+  <div class="container">
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse"
+            data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">Your home</a>
+        </div>
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-nav">
+            <li><a href="/upload/">Upload files<span class="sr-only">(current)</span></a></li>
+            <li><a href="/result/">Result</a></li>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+    <div class="row">
+      <div class="col-md-6 col-sm-4 col-xs-6">
+        <img src="{{ url_for('video_feed') }}">
+      </div>
+    </div>
+  </div>
 </body>
-
-</html>
