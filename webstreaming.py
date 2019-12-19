@@ -1,5 +1,5 @@
 # USAGE
-# python webstreaming.py --ip 0.0.0.0 --port 8000
+# python webstreaming.py --ip 0.0.0.0 --port 8000 --source rtsp://admin:1234qwer@192.168.0.100:554/onvif1
 
 # import the necessary packages
 from back_end.object_detection import ObjectDetector
@@ -88,7 +88,7 @@ def detect_object(confidence, target):
     # read the next frame from the video stream, resize it,
     # get the frame dimension and convert to a blob
     ret, frame = vs.read()
-    frame = imutils.resize(frame, width=1000)
+    frame = imutils.resize(frame, width=600)
     # grab the frame dimensions and convert it to a blob as opencv use
     (h, w) = frame.shape[:2]
     blob = cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True, crop=False)
@@ -216,9 +216,9 @@ def result():
 if __name__ == '__main__':
   # construct the argument parser and parse command line arguments
   ap = argparse.ArgumentParser()
-  ap.add_argument("-i", "--ip", type=str, required=True,
+  ap.add_argument("-i", "--ip", type=str, default='0.0.0.0',
     help="ip address of the device")
-  ap.add_argument("-o", "--port", type=int, required=True,
+  ap.add_argument("-o", "--port", type=int, default=8000,
     help="ephemeral port number of the server (1024 to 65535)")
   ap.add_argument("-c", "--confidence", type=float, default=0.3,
     help="the threshold confidence value")
@@ -237,11 +237,11 @@ if __name__ == '__main__':
   t.daemon = True
   t.start()
 
-  schedule.every().day.at("23:00").do(start)
-  schedule.every().day.at("05:00").do(stop)
-  t1 = threading.Thread(target=run_schedule)
-  t1.daemon = True
-  t1.start()
+  # schedule.every().day.at("23:00").do(start)
+  # schedule.every().day.at("05:00").do(stop)
+  # t1 = threading.Thread(target=run_schedule)
+  # t1.daemon = True
+  # t1.start()
   # start the flask app
   app.run(host=args["ip"], port=args["port"], debug=True,
     threaded=True, use_reloader=True)
