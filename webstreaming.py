@@ -3,8 +3,7 @@
 
 # import the necessary packages
 from back_end.object_detection import ObjectDetector
-# from back_end.logger import Logger
-from imutils.video import VideoStream
+from back_end.camera_thread import Camera
 from flask import Response
 from flask import Flask
 from flask import render_template
@@ -47,12 +46,6 @@ os.environ["OPENCV_GSTREAMER_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 CLASSES = ["background", "nguoi", "xe may", "o to"]
 COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 UPLOAD_FOLDER = 'static/tmp/'
-# initialize the video stream and allow the camera sensor to
-# warmup
-# vs = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.5:554/onvif1')
-# vs = cv2.VideoCapture("videofromcam.mp4")
-time.sleep(2.0)
-
 
 def detect_from_image(frame, detector, confidence_score=0.5):
   frame = imutils.resize(frame, width=400)
@@ -87,8 +80,8 @@ def detect_object(confidence, target):
   while True:
     # read the next frame from the video stream, resize it,
     # get the frame dimension and convert to a blob
-    ret, frame = vs.read()
-    frame = imutils.resize(frame, width=600)
+    frame = vs.getFrame()
+    frame = imutils.resize(frame, width=1000)
     # grab the frame dimensions and convert it to a blob as opencv use
     (h, w) = frame.shape[:2]
     blob = cv2.dnn.blobFromImage(frame, size=(300, 300), swapRB=True, crop=False)
@@ -228,10 +221,9 @@ if __name__ == '__main__':
                   default="videofromcam.mp4",
                   help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
-  if args["source"] == "0":
-    vs = cv2.VideoCapture(0)
-  else:
-    vs = cv2.VideoCapture(args["source"], cv2.CAP_GSTREAMER)
+  # start a thread that grab frame from video stream
+  vs = Camera(args["source"])
+  time.sleep(2.0)
   # vs = cv2.VideoCapture(0)
   # start a thread that will perform motion detection
   t = threading.Thread(target=detect_object, args=(
@@ -247,6 +239,3 @@ if __name__ == '__main__':
   # start the flask app
   app.run(host=args["ip"], port=args["port"], debug=True,
     threaded=True, use_reloader=True)
-
-# release the video stream pointer
-vs.stop()
