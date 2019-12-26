@@ -41,7 +41,7 @@ logfile = logging.getLogger('file')
 
 
 # initialize enviroment variable
-os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
+os.environ["OPENCV_GSTREAMER_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 # initialize the list of class labels MobileNet SSD was trained to
 # detect, then generate a set of bounding box colors for each class
 CLASSES = ["background", "nguoi", "xe may", "o to"]
@@ -228,8 +228,10 @@ if __name__ == '__main__':
                   default="videofromcam.mp4",
                   help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
-
-  vs = cv2.VideoCapture(args["source"])
+  if args["source"] == "0":
+    vs = cv2.VideoCapture(0)
+  else:
+    vs = cv2.VideoCapture(args["source"], cv2.CAP_GSTREAMER)
   # vs = cv2.VideoCapture(0)
   # start a thread that will perform motion detection
   t = threading.Thread(target=detect_object, args=(
