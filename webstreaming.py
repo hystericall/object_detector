@@ -222,7 +222,10 @@ if __name__ == '__main__':
                   help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
   # start a thread that grab frame from video stream
-  vs = Camera(args["source"])
+  if args["source"] == "demo":
+    vs = Camera("rtsp://admin:1234qwer@192.168.0.100:554/onvif1")
+  else:
+    vs = Camera(args["source"])
   time.sleep(2.0)
   # vs = cv2.VideoCapture(0)
   # start a thread that will perform motion detection
