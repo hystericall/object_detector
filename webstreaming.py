@@ -1,14 +1,15 @@
 # USAGE
-# python webstreaming.py --ip 0.0.0.0 --port 8000
+# python webstreaming.py --ip 0.0.0.0 --port 8000 --source rtsp://admin:1234qwer@192.168.0.100:554/onvif1
 
 # import the necessary packages
 from back_end.object_detection import ObjectDetector
-# from back_end.logger import Logger
-from imutils.video import VideoStream
+from back_end.camera_thread import Camera
 from flask import Response
 from flask import Flask
 from flask import render_template
 from flask import request
+from signal import signal, SIGINT
+from sys import exit
 import glob
 import logging.config
 import yaml
@@ -41,18 +42,13 @@ logfile = logging.getLogger('file')
 
 
 # initialize enviroment variable
+# os.environ["OPENCV_GSTREAMER_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 # initialize the list of class labels MobileNet SSD was trained to
 # detect, then generate a set of bounding box colors for each class
 CLASSES = ["background", "nguoi", "xe may", "o to"]
 COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
 UPLOAD_FOLDER = 'static/tmp/'
-# initialize the video stream and allow the camera sensor to
-# warmup
-# vs = cv2.VideoCapture('rtsp://admin:1234qwer@192.168.1.5:554/onvif1')
-# vs = cv2.VideoCapture("videofromcam.mp4")
-time.sleep(2.0)
-
 
 def detect_from_image(frame, detector, confidence_score=0.5):
   frame = imutils.resize(frame, width=400)
@@ -87,7 +83,7 @@ def detect_object(confidence, target):
   while True:
     # read the next frame from the video stream, resize it,
     # get the frame dimension and convert to a blob
-    ret, frame = vs.read()
+    frame = vs.getFrame()
     frame = imutils.resize(frame, width=1000)
     # grab the frame dimensions and convert it to a blob as opencv use
     (h, w) = frame.shape[:2]
@@ -212,13 +208,20 @@ def result():
   fileNames = os.listdir(UPLOAD_FOLDER)
   return render_template('image_slide.html', names = fileNames )
 
+
+def handler(signal_received, frame):
+  vs.release()
+  print('SIGINT or CTRL-C detected. Exiting gracefully')
+  exit(0)
 # check to see if this is the main thread of execution
 if __name__ == '__main__':
+  # exit handler when Ctrl+C
+  signal(SIGINT, handler)
   # construct the argument parser and parse command line arguments
   ap = argparse.ArgumentParser()
-  ap.add_argument("-i", "--ip", type=str, required=True,
+  ap.add_argument("-i", "--ip", type=str, default='0.0.0.0',
     help="ip address of the device")
-  ap.add_argument("-o", "--port", type=int, required=True,
+  ap.add_argument("-o", "--port", type=int, default=8000,
     help="ephemeral port number of the server (1024 to 65535)")
   ap.add_argument("-c", "--confidence", type=float, default=0.3,
     help="the threshold confidence value")
@@ -228,8 +231,12 @@ if __name__ == '__main__':
                   default="videofromcam.mp4",
                   help="rstp video url including username(admin) and password")
   args = vars(ap.parse_args())
-
-  vs = cv2.VideoCapture(args["source"])
+  # start a thread that grab frame from video stream
+  if args["source"] == "demo":
+    vs = Camera("rtsp://admin:1234qwer@192.168.0.100:554/onvif1")
+  else:
+    vs = Camera(args["source"])
+  time.sleep(2.0)
   # vs = cv2.VideoCapture(0)
   # start a thread that will perform motion detection
   t = threading.Thread(target=detect_object, args=(
@@ -237,14 +244,7 @@ if __name__ == '__main__':
   t.daemon = True
   t.start()
 
-  schedule.every().day.at("23:00").do(start)
-  schedule.every().day.at("05:00").do(stop)
-  t1 = threading.Thread(target=run_schedule)
-  t1.daemon = True
-  t1.start()
   # start the flask app
   app.run(host=args["ip"], port=args["port"], debug=True,
     threaded=True, use_reloader=True)
 
-# release the video stream pointer
-vs.stop()
