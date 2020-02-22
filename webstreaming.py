@@ -8,6 +8,8 @@ from flask import Response
 from flask import Flask
 from flask import render_template
 from flask import request
+from signal import signal, SIGINT
+from sys import exit
 import glob
 import logging.config
 import yaml
@@ -40,7 +42,8 @@ logfile = logging.getLogger('file')
 
 
 # initialize enviroment variable
-os.environ["OPENCV_GSTREAMER_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
+# os.environ["OPENCV_GSTREAMER_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;udp"
 # initialize the list of class labels MobileNet SSD was trained to
 # detect, then generate a set of bounding box colors for each class
 CLASSES = ["background", "nguoi", "xe may", "o to"]
@@ -205,8 +208,15 @@ def result():
   fileNames = os.listdir(UPLOAD_FOLDER)
   return render_template('image_slide.html', names = fileNames )
 
+
+def handler(signal_received, frame):
+  vs.release()
+  print('SIGINT or CTRL-C detected. Exiting gracefully')
+  exit(0)
 # check to see if this is the main thread of execution
 if __name__ == '__main__':
+  # exit handler when Ctrl+C
+  signal(SIGINT, handler)
   # construct the argument parser and parse command line arguments
   ap = argparse.ArgumentParser()
   ap.add_argument("-i", "--ip", type=str, default='0.0.0.0',
@@ -234,11 +244,7 @@ if __name__ == '__main__':
   t.daemon = True
   t.start()
 
-  # schedule.every().day.at("23:00").do(start)
-  # schedule.every().day.at("05:00").do(stop)
-  # t1 = threading.Thread(target=run_schedule)
-  # t1.daemon = True
-  # t1.start()
   # start the flask app
   app.run(host=args["ip"], port=args["port"], debug=True,
     threaded=True, use_reloader=True)
+
